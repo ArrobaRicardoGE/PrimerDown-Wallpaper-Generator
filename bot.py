@@ -1,4 +1,4 @@
-import tweepy,time,generator,os,emailSender,codecs
+import tweepy,time,generator,os,emailSender
 
 def checkStatus(sinceId):
     count = 0
@@ -32,26 +32,44 @@ def checkStatus(sinceId):
 auth = tweepy.OAuthHandler(os.environ["TW_CONSUMER_KEY"],os.environ["TW_CONSUMER_SECRET"])
 auth.set_access_token(os.environ["TW_ACCESS_TOKEN"],os.environ["TW_ACCESS_SECRET"])
 api = tweepy.API(auth)
+DailyUpdate = False
+gTotal = 0
+gReplied = 0
+gErrors = 0
 
 while(True):
     try:
+        if(time.localtime().tm_hour==21):
+            DailyUpdate == False
+        if(not DailyUpdate and time.localtime().tm_hour==22):
+            print(emailSender.sendEmail("TWBOT: Daily report","\nHere is your daily report:\r\nTotal mentions: {}\r\nReplied to: {}\r\nErrors: {}".format(gTotal,gReplied,gErrors)))
+            with open("stats.txt","a+") as f:
+                f.write("Day: {} {} {}\t Total mentions: {}\t Replied to: {}\t Errors: {}\r\n".format(time.localtime().tm_year,time.localtime().tm_mon,time.localtime().tm_mday,gTotal,gReplied,gErrors))
+            gTotal=gReplied=gErrors=0
+            DailyUpdate = True
+
         with open("lastId.txt","r") as f:
             lastId = int(f.read().strip())
 
         mentionsN,newLastId,repliedN,errors = checkStatus(lastId)
-        print("Done, mentioned in " + str(mentionsN)+", replied to "+str(repliedN)+" tweets, "+str(errors)+" errors")
+        print("Done, mentioned in {}, replied to {} tweets, {} errors".format(mentionsN,repliedN,errors))
+        gTotal+=mentionsN
+        gReplied+=repliedN
+        gErrors+=errors
 
         with open("lastId.txt","w") as f:
             f.write(str(newLastId))
 
     except tweepy.RateLimitError as e:
         print("RateLimit: "+e.response.text)
-        try:
-            emailSender.sendEmail(e.response.text)
-        except Exception:
-            print("Unable to send email")
+        print(emailSender.sendEmail("TWBOT: URGENT {}".format(e.response.text),"\nSome rate limit has been reached and it requires your attention:\r\n{}".format(e.response.text)))
         time.sleep(3600)
     except tweepy.TweepError as e:
         print("Error: "+e.response.text)
+        print(emailSender.sendEmail("TWBOT: Somehting went wrong","\nThe following tweepy exception ocurred:\r\n{}".format(e.response.text)))
+    except Exception as e:
+        print("Error: "+str(e))
+        print(emailSender.sendEmail("TWBOT: URGENT an unexpected error ocurred","\nThis exception was unexpected and it requires your attention:\r\n{}".format(str(e))))
+        time.sleep(7200)
 
     time.sleep(15)
