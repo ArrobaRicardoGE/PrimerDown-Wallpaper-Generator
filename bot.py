@@ -39,9 +39,9 @@ gErrors = 0
 
 while(True):
     try:
-        if(time.localtime().tm_hour==21):
-            DailyUpdate == False
-        if(not DailyUpdate and time.localtime().tm_hour==22):
+        if(time.localtime().tm_hour==2):
+            DailyUpdate = False
+        if(not DailyUpdate and time.localtime().tm_hour==3):
             print(emailSender.sendEmail("TWBOT: Daily report","\nHere is your daily report:\r\nTotal mentions: {}\r\nReplied to: {}\r\nErrors: {}".format(gTotal,gReplied,gErrors)))
             with open("stats.txt","a+") as f:
                 f.write("Day: {} {} {}\t Total mentions: {}\t Replied to: {}\t Errors: {}\r\n".format(time.localtime().tm_year,time.localtime().tm_mon,time.localtime().tm_mday,gTotal,gReplied,gErrors))
